@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nadine's Eternal Voyage 🌌</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;600;800&family=Pacifico&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        :root { --primary: #3b82f6; --accent: #8b5cf6; --danger: #f43f5e; --gold: #fbbf24; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            margin: 0; background: #020617; font-family: 'Plus Jakarta Sans', sans-serif; 
+            display: flex; justify-content: center; align-items: center; 
+            height: 100vh; overflow: hidden; color: white;
+        }
+
+        .nebula { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 50% 50%, #1e1b4b 0%, #020617 100%); z-index: -2; }
+        .stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+
+        .game-wrapper { width: 95%; max-width: 450px; z-index: 10; position: relative; }
+
+        .card {
+            background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px;
+            padding: 25px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            animation: slideUp 0.5s ease; position: relative;
+        }
+
+        .game-area {
+            width: 100%; height: 380px; background: rgba(0,0,0,0.5);
+            border-radius: 20px; position: relative; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1); touch-action: none;
+        }
+
+        .player { position: absolute; bottom: 20px; width: 60px; height: 60px; font-size: 40px; display: flex; align-items: center; justify-content: center; z-index: 50; pointer-events: none; transform: translateX(-50%); left: 50%; }
+        .item { position: absolute; font-size: 28px; z-index: 40; }
+
+        .stats { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: 800; font-size: 13px; }
+        .hp-bar { width: 100px; height: 8px; background: #1e293b; border-radius: 10px; overflow: hidden; }
+        #hp-fill { width: 100%; height: 100%; background: var(--danger); transition: 0.3s; }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white; border: none; padding: 18px; border-radius: 20px;
+            font-weight: 800; width: 100%; cursor: pointer; margin-top: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3); position: relative; z-index: 999;
+        }
+
+        .photo-scroller { display: flex; overflow-x: auto; gap: 15px; padding: 10px 0; scrollbar-width: none; }
+        .wide-img { min-width: 280px; height: 160px; border-radius: 15px; object-fit: cover; border: 2px solid rgba(255,255,255,0.1); }
+        .hidden { display: none !important; }
+
+        #grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 20px; height: 100%; }
+        .tile { background: rgba(255,255,255,0.05); border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: 0.3s; }
+        .tile.active { background: var(--gold); box-shadow: 0 0 20px var(--gold); transform: scale(0.95); }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="nebula"></div>
+    <canvas class="stars" id="starCanvas"></canvas>
+
+    <div class="game-wrapper">
+        <div class="card" id="screen-start">
+            <h1 style="font-family:'Pacifico'; color:var(--primary); margin:0;">Space Journey 🪐</h1>
+            <p style="color:#94a3b8; font-size: 13px; margin: 10px 0 20px;">Misi menjelajah planet akan dimulaiii 🌙.<br> Enjoy your journey sayanggg</p>
+            <div class="photo-scroller">
+                <img src="https://img.sanishtech.com/u/e26aba2df93d5525f1634fdb99be0fac.png" class="wide-img">
+                <img src="https://img.sanishtech.com/u/69c99d904a55666377949c4cdbd1861f.png" class="wide-img">
+            </div>
+            <button class="btn" onclick="startFullGame()">YUKK MULAII 🚀</button>
+        </div>
+
+        <div class="card hidden" id="screen-lvl1">
+            <div class="stats">
+                <div>LVL 1: <span id="score1">0</span>/300</div>
+                <div class="hp-bar"><div id="hp1" style="width:100%; height:100%; background:var(--danger)"></div></div>
+            </div>
+            <div id="area1" class="game-area">
+                <div id="p1" class="player">👦🏽</div>
+            </div>
+            <p style="font-size:10px; color:#64748b; margin-top:10px">Makin tinggi skor, makin cepat jatuhnya!</p>
+        </div>
+
+        <div class="card hidden" id="screen-break">
+            <h2 style="font-family:'Pacifico'; color:var(--gold)">YEYY LOLOSS 🌟</h2>
+            <div id="msg-break" style="font-size:14px; line-height:1.6; text-align:left; color:#e2e8f0; height:120px; overflow-y:auto;"></div>
+            <button class="btn" onclick="startLevel2()">LANJUTT DONGGGS </button>
+        </div>
+
+        <div class="card hidden" id="screen-lvl2">
+            <div class="stats">
+                <div>   <span id="stage2">1</span>/10</div>
+                <div style="color:var(--gold)">MEMORY TEST 2.0</div>
+            </div>
+            <div id="area2" class="game-area">
+                <div id="grid"></div>
+            </div>
+        </div>
+
+        <div class="card hidden" id="screen-final">
+            <h2 style="font-family:'Pacifico'; color:var(--gold); margin:0">YOU DID IT</h2>
+            <div class="photo-scroller" style="margin: 15px 0;">
+                <img src="https://img.sanishtech.com/u/0899f56992fdbc11bac2731cc4db6915.png" class="wide-img">
+                <img src="https://img.sanishtech.com/u/dfc21dd9480429ba6b30e004dc55dff9.png" class="wide-img">
+                <img src="https://img.sanishtech.com/u/2d203a2cec8ed2ce8516fea0231e3f6e.png" class="wide-img">
+            </div>
+            <div id="final-text" style="text-align:left; font-size:14px; line-height:1.8; height:200px; overflow-y:auto; color:#cbd5e1; padding-right:5px;"></div>
+            <button class="btn" onclick="location.reload()">Mulai lagii💙</button>
+        </div>
+    </div>
+
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playNote(freq, type, duration, vol=0.08) {
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + duration);
+        }
+
+        const sfx = {
+            collect: () => { playNote(880, 'sine', 0.2); playNote(1320, 'sine', 0.3); },
+            hit: () => { playNote(150, 'sawtooth', 0.4, 0.15); },
+            win: () => { [523, 659, 783, 1046].forEach((f, i) => setTimeout(() => playNote(f, 'square', 0.6), i*120)); }
+        };
+
+        let score = 0; let hp = 100; let active = false; let stage = 1;
+        let pattern = []; let playerInput = [];
+
+        function setScreen(id) {
+            document.querySelectorAll('.card').forEach(c => c.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function startFullGame() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            setScreen('screen-lvl1');
+            active = true;
+            spawnLvl1();
+        }
+
+        const area1 = document.getElementById('area1');
+        const p1 = document.getElementById('p1');
+
+        area1.onmousemove = area1.ontouchmove = (e) => {
+            if(!active) return;
+            let r = area1.getBoundingClientRect();
+            let x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+            p1.style.left = Math.min(Math.max(x - 30, 0), r.width - 60) + 'px';
+        };
+
+        function spawnLvl1() {
+            if(!active || score >= 300) return;
+            const items = [{c:'💞', p:20}, {c:'🤍', p:10}, {c:'💔', p:-35}, {c:'❤️‍🩹', p:-25}];
+            let obj = items[Math.floor(Math.random()*(score > 150 ? 4 : 3))];
+            let el = document.createElement('div');
+            el.className = 'item'; el.innerHTML = obj.c;
+            el.style.left = Math.random() * (area1.offsetWidth - 30) + 'px';
+            el.style.top = '-40px';
+            area1.appendChild(el);
+
+            let pos = -40;
+            let speed = 4 + (score / 45);
+            let fall = setInterval(() => {
+                if(!active) { clearInterval(fall); el.remove(); return; }
+                pos += speed;
+                el.style.top = pos + 'px';
+                let pr = p1.getBoundingClientRect(), ir = el.getBoundingClientRect();
+
+                if (ir.bottom >= pr.top && ir.left < pr.right && ir.right > pr.left && ir.top < pr.bottom) {
+                    clearInterval(fall); el.remove();
+                    if(obj.p > 0) { score += obj.p; sfx.collect(); }
+                    else { hp += obj.p; sfx.hit(); area1.style.background = 'rgba(255,0,0,0.2)'; setTimeout(()=>area1.style.background='', 150); }
+                    document.getElementById('score1').innerText = score;
+                    document.getElementById('hp1').style.width = Math.max(0, hp) + '%';
+                    if(hp <= 0) { alert("SEMANGATT SAYANGG U CAN DO ITT"); location.reload(); }
+                    if(score >= 300) { active = false; sfx.win(); showBreak(); }
+                }
+                if(pos > 400) { clearInterval(fall); el.remove(); }
+            }, 18);
+            setTimeout(spawnLvl1, Math.max(300, 850 - (score * 1.5)));
+        }
+
+        function showBreak() {
+            setScreen('screen-break');
+            const msg = "WAWWW PERJALANAN YANG MENEGANGKAN YAAA, KERENN BISAAA MELINDUNGI CINTAA YANG SEJATII WKWKWKKW, waahhh cukup menegangkann yakk gamenyaa jadi nostalgia dulu ada game pixel yang tembak tembakan ituuu wkwkwkwk, yaaa game ini tu menggambarkan fathan fahreza dalam mencintai nadineee.. pokoknyaa selalu buat nadine merasa di cintaii, dan menghindarii hal hal yang bikin kamu sakit hatii sayangg begituu dehh ceritanyaa tuuu.. nahh selanjutnyaa adaa apaa yaaaaa";
+            let i = 0;
+            function type() {
+                if(i < msg.length) { document.getElementById('msg-break').innerHTML += msg.charAt(i); i++; setTimeout(type, 30); }
+            }
+            type();
+        }
+
+        const grid = document.getElementById('grid');
+        function startLevel2() {
+            setScreen('screen-lvl2');
+            grid.innerHTML = '';
+            for(let i=0; i<9; i++) {
+                let t = document.createElement('div'); t.className = 'tile';
+                t.onclick = () => handleTile(i); grid.appendChild(t);
+            }
+            pattern = []; stage = 1;
+            setTimeout(generateNextPattern, 1000);
+        }
+
+        // Logic baru: Menambahkan 1 urutan ke pola yang sudah ada
+        function generateNextPattern() {
+            pattern.push(Math.floor(Math.random()*9));
+            playPattern();
+        }
+
+        function playPattern() {
+            active = false; playerInput = [];
+            let i = 0;
+            let interval = setInterval(() => {
+                let t = grid.children[pattern[i]];
+                t.classList.add('active'); playNote(300 + (pattern[i]*60), 'sine', 0.4);
+                setTimeout(() => t.classList.remove('active'), 400);
+                i++;
+                if(i >= pattern.length) { clearInterval(interval); active = true; }
+            }, 700);
+        }
+
+        function handleTile(idx) {
+            if(!active) return;
+            playerInput.push(idx);
+            let t = grid.children[idx];
+            t.classList.add('active'); playNote(300 + (idx*60), 'sine', 0.1);
+            setTimeout(() => t.classList.remove('active'), 200);
+
+            if(playerInput[playerInput.length-1] !== pattern[playerInput.length-1]) {
+                // SALAH: Sound effect hit, lalu ULANGI pola stage yang sama
+                active = false;
+                sfx.hit();
+                setTimeout(() => {
+                    alert("Yahh salah urutan, inget-inget lagi sayangg! 💙");
+                    playPattern(); // Ulangi pola yang sama
+                }, 500);
+            } else if(playerInput.length === pattern.length) {
+                // BENAR: Naik stage
+                stage++; sfx.collect();
+                if(stage > 10) finish();
+                else { 
+                    document.getElementById('stage2').innerText = stage; 
+                    setTimeout(generateNextPattern, 1000); 
+                }
+            }
+        }
+
+        function finish() {
+            setScreen('screen-final'); sfx.win();
+            confetti({ particleCount: 300, spread: 100, origin: { y: 0.6 } });
+            const txt = "HIII MY SUNSHINEEE INI DIAA LONGTEKSNYAA\n\nWahh tida merasaa udaa di ujung liburann yaaa sayangg, padahal perasaan baru kemarin kitaa liburann nihh wkwkkwkw, aku mau bilang terimakasihh yaa selama liburan inii kamu nemenin aku terusss, makasih sudah jadi satu satunyaa orang yang adaa selama aku liburann inii, yaa walaupun wishlist yang tercapai cumaa bermain ps ajaa taoi aku bersyukurr bangett koo bisaa ketemuu, teruss main sama kamuu. mungkin katamu juga benerr ga harus selalu ketemu, tapi yaa namanya juga kangen masa ga bolee wkwkkww. Besokk jugaa harii pertamaa sekolah nihh, jujurr aku ga kangenn sekolah sama sekalii wkwkwkkw, yaa begitulah tapi harus tetap di jalanii yaakk. semogaa kitaa di sekolah bisa tetap bermain bersamaa yaakk, aku cuma berharap itu ajaa sii sekrangg ga mau muluk mulukk wkwkkwwk. semangatt yaakk besokk hari pertama sekolahnyaa, jangan lupaa sarapam dulu besokk. airdropnyaa di bawaa yaa, samaa bawaij fathan dasi jugakk wkwkwkwkw.\n\nokeeyy dee mungkin jugaa ini jadii hal yanv panjangg, karena besok jugaa sekolah dan mungkin hectic dan chaos juga pagimu jadii ak tida mau panjang panjangg, selamatt beristirahatt yaa sayanggg, terimakasihh hari inii udaa nemeninn yaaa.. walaupun ga jadi ketemuu dan tadii jugaa baru banyak waktu pas malemm tapii aku seneng banget hari inii bisa naikin mut untuk menbuat game inii wkwkwkwkwk.. yasudaaa goodnight yaa sayangg, boboo yang nyenyakk yaaaa je t'aimeee bieennn nadine syakiraa prettyyy 🌌💙✨";
+            let i = 0;
+            function type() {
+                if(i < txt.length) { document.getElementById('final-text').innerHTML += txt.charAt(i); i++; setTimeout(type, 45); }
+            }
+            type();
+        }
+
+        const canvas = document.getElementById('starCanvas'); const ctx = canvas.getContext('2d');
+        let stars_arr = [];
+        function res() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.onresize = res; res();
+        for(let i=0; i<120; i++) stars_arr.push({x:Math.random()*canvas.width, y:Math.random()*canvas.height, s:Math.random()*2});
+        function draw() {
+            ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle = "white";
+            stars_arr.forEach(s => { ctx.beginPath(); ctx.arc(s.x,s.y,s.s,0,Math.PI*2); ctx.fill(); s.y+=0.4; if(s.y>canvas.height) s.y=0; });
+            requestAnimationFrame(draw);
+        }
+        draw();
+    </script>
+</body>
+</html>
